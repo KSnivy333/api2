@@ -1,41 +1,28 @@
-# Crear archivo .github/workflows/deploy-ec2.yml en tu repositorio
 name: Deploy to EC2
 
 on:
-push:
-branches: [ main ]
+  push:
+    branches: [ main ]
 
 jobs:
-deploy:
-runs-on: ubuntu-latest
+  deploy:
+    runs-on: ubuntu-latest
 
-steps:
-- name: Checkout code
-uses: actions/checkout@v3
-- name: Deploy to EC2
-uses: appleboy/ssh-action@master
-with:
-host: ${{ secrets.EC2_HOST }}
-username: ${{ secrets.EC2_USER }}
-key: ${{ secrets.EC2_SSH_KEY }}
-script: |
-cd /home/ubuntu/api-citas-flask
-git pull origin main
-source venv/bin/activate
-pip install -r requirements.txt
-sudo systemctl restart api-citas
-
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v4
+      # Checkout del código del repositorio
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      # Runs a single command using the runners shell
-      - name: Run a one-line script
-        run: echo Hello, world!
-
-      # Runs a set of commands using the runners shell
-      - name: Run a multi-line script
-        run: |
-          echo Add other actions to build,
-          echo test, and deploy your project.
+      # Despliegue vía SSH a EC2
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd /home/ubuntu/api2  # Cambia por tu ruta real en EC2
+            git pull origin main
+            source venv/bin/activate  # Si usas virtualenv
+            pip install -r requirements.txt --quiet
+            sudo systemctl restart api2  # Cambia por nombre de tu servicio systemd
