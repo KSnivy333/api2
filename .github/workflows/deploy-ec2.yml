@@ -9,11 +9,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout del código del repositorio
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Despliegue vía SSH a EC2
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -21,8 +19,37 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            cd /home/ubuntu/api2  # Cambia por tu ruta real en EC2
-            git pull origin main
-            source venv/bin/activate  # Si usas virtualenv
-            pip install -r requirements.txt --quiet
-            sudo systemctl restart api2  # Cambia por nombre de tu servicio systemd
+            echo "=== Preparando directorio ==="
+            sudo mkdir -p /home/ubuntu/api2
+            cd /home/ubuntu/api2
+            
+            echo "=== Git pull ==="
+            if [ ! -d ".git" ]; then
+              git clone git@github.com:KSnivy333/api2.git .
+            else
+              git pull origin main
+            fi
+            
+            echo "=== Configurando venv ==="
+            sudo apt update -qq
+            sudo apt install -y python3-full python3-pip python3-venv git -qq
+            
+            if [ ! -d "venv" ]; then
+              python3 -m venv venv
+            fi
+            source venv/bin/activate
+            
+            echo "=== Instalando dependencias ==="
+            if [ -f "requirements.txt" ]; then
+              pip install -r requirements.txt --quiet
+            else
+              echo "No requirements.txt encontrado"
+            fi
+            
+            echo "=== Reiniciando servicio (si existe) ==="
+            if systemctl is-active --quiet api2; then
+              sudo systemctl restart api2
+              echo "Servicio api2 reiniciado"
+            else
+              echo "Servicio api2 no existe aún - crear manualmente"
+            fi
